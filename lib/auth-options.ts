@@ -134,6 +134,14 @@ export const authOptions = {
     async jwt({ token, account, profile }: any) {
       // Persist the OAuth access_token and or the user id to the token right after signin
       if (account) {
+        console.log("🔑 JWT callback - Account data:", {
+          provider: account.provider,
+          access_token: account.access_token ? "present" : "missing",
+          refresh_token: account.refresh_token ? "present" : "missing",
+          expires_in: account.expires_in,
+          refresh_token_expires_in: account.refresh_token_expires_in,
+        });
+
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt =
