@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  meetings      Meeting[]
+  automations   Automation[]
+  socialAccounts SocialAccount[]
+  settings      UserSettings?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Meeting {
+  id                String   @id @default(cuid())
+  userId            String
+  title             String
+  description       String?
+  startTime         DateTime
+  endTime           DateTime
+  platform          String   // zoom, teams, meet
+  meetingUrl        String?
+  recallBotId       String?
+  recallRecordingId String?  // Recording ID from webhook
+  recallTranscriptId String? // Transcript ID from webhook
+  recallStatus      String?  // pending, recording, completed, failed
+  transcript        String?  // Raw transcript data (JSON)
+  transcriptSentences String? // Extracted sentences (JSON array)
+  summary           String?
+  attendees         String?  // JSON array of attendee names
+  isNotetakerEnabled Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialPosts       SocialPost[]
+}
+
+model SocialPost {
+  id            String   @id @default(cuid())
+  meetingId     String
+  automationId  String?  // Reference to the automation that created this post
+  platform      String   // linkedin, facebook
+  content       String
+  status        String   // draft, posted, failed
+  postedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  meeting       Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  automation    Automation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+}
+
+model Automation {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  type        String   // generate_post, generate_email
+  platform    String   // linkedin, facebook, email
+  description String
+  example     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialPosts SocialPost[]
+}
+
+model SocialAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  platform          String   // linkedin, facebook
+  platformUserId    String
+  accessToken       String
+  refreshToken      String?
+  expiresAt         DateTime?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  botJoinMinutesBefore  Int      @default(2)
+  openaiApiKey          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
